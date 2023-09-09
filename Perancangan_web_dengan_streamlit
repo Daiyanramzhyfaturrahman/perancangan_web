@@ -1,0 +1,234 @@
+import streamlit as st
+import numpy as np
+import pandas as pd
+import base64
+import matplotlib.pyplot as plt
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+from scipy.stats import randint
+# Tree Visualisation
+from sklearn.tree import export_graphviz
+from IPython.display import Image
+
+data = pd.read_excel('Project.xlsx')
+data.head()
+data.shape
+data['peringkat'].value_counts()
+
+X = data.drop (columns='peringkat',axis=1)
+Y = data['peringkat']
+
+print(X)
+print(Y)
+
+scaler = StandardScaler()
+
+scaler.fit(X)
+
+standarized__data = scaler.transform(X)
+
+print(standarized__data)
+
+X = standarized__data
+Y = data['peringkat']
+
+print(X)
+print(Y)
+
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size= 0.2, stratify=Y, random_state=46)
+
+print(X.shape, X_train.shape, X_test.shape)
+
+X = data.iloc[:, :-1]  # Features
+Y = data.iloc[:, -1]   # Labels
+
+nb_classifier = GaussianNB()
+nb_classifier.fit(X_train, Y_train)
+
+X_train_prediction = nb_classifier.predict(X_train)
+
+training_data_accuracy = accuracy_score(X_train_prediction, Y_train)
+
+print("Accuracy training:", training_data_accuracy)
+
+X = data.iloc[:, :-1]  # Features
+Y = data.iloc[:, -1]   # Labels
+
+nb_classifier = GaussianNB()
+nb_classifier.fit(X_test, Y_test)
+
+X_test_prediction = nb_classifier.predict(X_test)
+
+test_data_accuracy = accuracy_score(X_test_prediction, Y_test)
+
+print('Akurasi testing:', test_data_accuracy)
+
+# Title
+# st.title('Prediksi Kecepatan Penerbitan Sertifikat Halal')
+session_state = st.session_state
+
+def Home():
+    # Tambahkan CSS kustom untuk membuat teks judul menjadi di tengah secara vertikal
+    st.markdown("""
+    <style>
+    .vertical-center {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh; /* Ini akan mengisi tinggi seluruh layar */
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Tampilkan judul di tengah secara vertikal
+    st.markdown('<h1 class="vertical-center">SELAMAT DATANG DI WEB ANALISA PENERBITAN SERTIFIKASI HALAL</h1>', unsafe_allow_html=True)
+
+
+
+def Analisa():
+    st.header('Analisa kecepatan penerbitan sertifikasi halal ')
+# Elemen antarmuka pengguna untuk input
+    JenisProduk1 = st.number_input('Masukkan produk1', min_value=0.0, max_value=2.0, value=0.0, step=0.0)
+
+    JenisProduk2 = st.number_input('Masukkan produk2', min_value=0.0, max_value=2.0, value=0.0, step=0.0)
+    
+    JenisProduk3 = st.number_input('Masukkan produk3', min_value=0.0, max_value=2.0, value=0.0, step=0.0)
+    
+    JenisProduk4 = st.number_input('Masukkan produk4', min_value=0.0, max_value=2.0, value=0.0, step=0.0)
+
+
+# Tombol untuk melakukan prediksi
+    if st.button('Prediksi'):
+        input_data = np.array([JenisProduk1, JenisProduk2, JenisProduk3, JenisProduk4])
+        
+        session_state.input_data_beranda = input_data  # Store the input data in session state
+        # Melakukan reshape data input
+        input_data_as_numpy_array = input_data.reshape(1, -1)
+    
+        # Melakukan transformasi dengan scaler
+        std_data = scaler.transform(input_data_as_numpy_array)
+    
+        # Melakukan prediksi dengan model yang telah dilatih
+        prediction = nb_classifier.predict(std_data)
+
+        if prediction[0] == 0:
+            hasil_prediksi = 'cepat'
+        else:
+            hasil_prediksi = 'lambat'
+
+        st.write('Hasil Prediksi:', hasil_prediksi)
+
+# Fungsi untuk halaman Tentang
+def Plot():
+    st.header('Barplot Hasil Input')
+
+    if hasattr(session_state, 'input_data_beranda'):
+
+        st.subheader('Grafik Berdasarkan Inputan Beranda')
+
+        data_to_plot = {
+            'Produk 1': session_state.input_data_beranda[0],
+            
+            'Produk 2': session_state.input_data_beranda[1],
+            
+            'Produk 3': session_state.input_data_beranda[2],
+            
+            'Produk 4': session_state.input_data_beranda[3]
+        }
+
+        # Konversi data ke dalam DataFrame
+        df = pd.DataFrame(list(data_to_plot.items()), columns=['Produk', 'Jumlah'])
+
+        # Menggambar bar plot menggunakan Pandas
+        st.bar_chart(df.set_index('Produk'))
+        st.line_chart(df.set_index('Produk'))
+
+# Fungsi untuk halaman Kontak
+def File():
+    st.header('Download File Analisa Dan File Data')
+    file_path = "C:/Users/Farra Shalsabila/Documents/project akhir/fast2.xlsx"
+    st.write('download file Excel')
+    if st.button("Download"):
+        with open(file_path, "rb") as f:
+            file_data = f.read()
+        st.markdown(f'<a onclick="data:application/octet-stream;base64,{base64.b64encode(file_data).decode()}" download="fast2.xlsx"><button>Click here to download EXCEL</button></a>', unsafe_allow_html=True)
+        file_path = "C:/Users/Farra Shalsabila/Documents/project akhir/analisis.ipynb"
+    st.write('download file Ipynb')
+    if st.button("DownLoad"):
+        with open(file_path, "rb") as f:
+            file_data = f.read()
+        st.markdown(f'<a onclick="data:application/octet-stream;base64,{base64.b64encode(file_data).decode()}" download="analisis.ipynb"><button>Click here to download .IPYNB</button></a>', unsafe_allow_html=True)
+
+
+def DataLain():
+    st.title("Aplikasi Analisis Data dengan Model Naive Bayes")
+
+    # Unggah file CSV atau Excel
+    uploaded_files = st.file_uploader("Unggah file CSV atau Excel dengan data pengguna", type=["csv", "xls", "xlsx"], accept_multiple_files=True)
+
+    for uploaded_file in uploaded_files:
+        try:
+            # Baca data pengguna dari file
+            if uploaded_file.type == "application/vnd.ms-excel" or uploaded_file.type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                df_pengguna = pd.read_excel(uploaded_file)
+            else:
+                df_pengguna = pd.read_csv(uploaded_file)
+
+            # Tampilkan data
+            st.subheader(f"Data yang Diunggah oleh Pengguna ({uploaded_file.type}):")
+            st.write(df_pengguna)
+
+            # Identifikasi kolom target dan fitur-fitur
+            target_column = st.selectbox("Pilih Kolom Target:", df_pengguna.columns)
+            feature_columns = st.multiselect("Pilih Fitur-fitur:", df_pengguna.columns)
+
+            if not feature_columns:
+                st.warning("Pilih setidaknya satu fitur.")
+
+            # Input sesuai dengan data yang diunggah oleh pengguna
+            st.subheader("Pembacaan Dataset")
+            input_features = {}
+            for column in feature_columns:
+                input_features[column] = st.number_input(f"Masukkan {column}", min_value=float(df_pengguna[column].min()), max_value=float(df_pengguna[column].max()), step=0.01)
+
+            # Praproses data berdasarkan fitur-fitur yang dipilih
+            X = df_pengguna[feature_columns]
+
+            scaler.fit(X)
+            standardized_data = scaler.transform(X)
+
+            # Gunakan model Naive Bayes untuk prediksi
+            Y = df_pengguna[target_column]
+
+            X_input = np.array(list(input_features.values())).reshape(1, -1)
+            X_input_standardized = scaler.transform(X_input)
+
+            nb_classifier.fit(standardized_data, Y)
+            prediction = nb_classifier.predict(X_input_standardized)
+
+            X_train, X_test, Y_train, Y_test = train_test_split(standardized_data, Y, test_size=0.2, stratify=Y, random_state=42)
+            X_test_prediction = nb_classifier.predict(X_test)
+            test_data_accuracy = accuracy_score(X_test_prediction, Y_test)
+
+            # Tampilkan akurasi
+            st.subheader('Akurasi Model pada Data Uji:')
+            st.write(f'Akurasi: {test_data_accuracy:.2f}')
+
+        except Exception as e:
+            st.error(f"Terjadi kesalahan: {str(e)}")
+
+selected_menu = st.sidebar.selectbox('Pilih Page:', ['Home','Analisa', 'Plot', 'File','DataLain'])
+
+if selected_menu == 'Home':
+    Home()
+elif selected_menu == 'Analisa':
+    Analisa()
+elif selected_menu == 'Plot':
+    Plot()
+elif selected_menu == 'File':
+    File()
+elif selected_menu == 'DataLain':
+    DataLain()
